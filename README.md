@@ -29,6 +29,13 @@ To test capture: select text in any app (e.g. the Claude app) → Share →
 **Save to Shelf**. Notes land in the shared container and appear in the app the
 next time it comes to the foreground.
 
+**iCloud mirror** (optional, off by default): add the *iCloud Documents*
+capability to the Shelf target in Signing & Capabilities (requires a paid
+developer account), then flip the toggle in Settings. The mirror is file-based —
+the Shelf folder copied to iCloud Drive, newest file wins — with no CloudKit
+schema. The toggle stays disabled when the capability or an iCloud account is
+missing.
+
 ## CI
 
 - `ShelfKit tests` — `swift test` on Linux in the `swift:6.1` container.

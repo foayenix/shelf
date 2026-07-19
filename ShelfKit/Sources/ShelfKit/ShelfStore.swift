@@ -190,6 +190,47 @@ public final class ShelfStore {
         return rebuilt
     }
 
+    /// Adds index entries for `.md` files that exist on disk but aren't in the
+    /// index — e.g. notes pulled down from the iCloud mirror. Unlike
+    /// `rebuildIndex()`, existing entries and collections are left untouched.
+    /// Adopted notes land in the Inbox with source `.import`.
+    @discardableResult
+    public func adoptOrphanNotes() throws -> [Note] {
+        let fm = FileManager.default
+        let known = Set(index.notes.map(\.id))
+        let files = (try? fm.contentsOfDirectory(
+            at: paths.notesDirectory,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey]
+        )) ?? []
+
+        var adopted: [Note] = []
+        for file in files where file.pathExtension == "md" {
+            guard let id = UUID(uuidString: file.deletingPathExtension().lastPathComponent),
+                  !known.contains(id),
+                  let body = try? String(contentsOf: file, encoding: .utf8)
+            else { continue }
+            let values = try? file.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+            let created = values?.creationDate ?? values?.contentModificationDate ?? .indexPrecision
+            adopted.append(Note(
+                id: id,
+                title: TitleDetector.title(for: body),
+                createdAt: created,
+                updatedAt: created,
+                source: .import,
+                wordCount: WordCount.count(body)
+            ))
+        }
+
+        if !adopted.isEmpty {
+            let newNotes = adopted
+            try mutateIndex { index in
+                let currentIds = Set(index.notes.map(\.id))
+                index.notes.append(contentsOf: newNotes.filter { !currentIds.contains($0.id) })
+            }
+        }
+        return adopted
+    }
+
     // MARK: - Private
 
     private func updateNote(_ id: UUID, _ change: (inout Note) -> Void) throws -> Note {

@@ -13,6 +13,8 @@ final class LibraryModel {
     private(set) var collections: [NoteCollection] = []
     /// First body line per note, for list previews. Filled lazily.
     private var previews: [UUID: String] = [:]
+    /// Full bodies, cached for the Reader and full-text search.
+    private var bodies: [UUID: String] = [:]
 
     init(store: ShelfStore) {
         self.store = store
@@ -38,6 +40,7 @@ final class LibraryModel {
     func reloadFromDisk() {
         try? store.reloadFromDisk()
         previews.removeAll()
+        bodies.removeAll()
         refresh()
     }
 
@@ -60,7 +63,22 @@ final class LibraryModel {
     }
 
     func body(of noteId: UUID) -> String {
-        (try? store.body(of: noteId)) ?? ""
+        if let cached = bodies[noteId] { return cached }
+        let body = (try? store.body(of: noteId)) ?? ""
+        bodies[noteId] = body
+        return body
+    }
+
+    /// Full-text search across titles and bodies, newest first.
+    func search(_ query: String) -> [Note] {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return [] }
+        return notes
+            .filter {
+                $0.title.localizedCaseInsensitiveContains(trimmed)
+                    || body(of: $0.id).localizedCaseInsensitiveContains(trimmed)
+            }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     func preview(of noteId: UUID) -> String {
@@ -94,6 +112,7 @@ final class LibraryModel {
             source: .paste
         )
         previews.removeValue(forKey: note.id)
+        bodies.removeValue(forKey: note.id)
         refresh()
         return note
     }
@@ -101,6 +120,7 @@ final class LibraryModel {
     func deleteNote(_ id: UUID) {
         try? store.deleteNote(id)
         previews.removeValue(forKey: id)
+        bodies.removeValue(forKey: id)
         refresh()
     }
 

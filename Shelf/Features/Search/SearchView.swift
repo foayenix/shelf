@@ -1,8 +1,7 @@
 import SwiftUI
 import ShelfKit
 
-/// Title search across all notes. Full-text search over bodies lands with the
-/// Phase 4 polish pass.
+/// Full-text search across all notes — titles and bodies.
 struct SearchView: View {
     @Environment(LibraryModel.self) private var library
     @Environment(\.dismiss) private var dismiss
@@ -10,14 +9,7 @@ struct SearchView: View {
     let onOpenNote: (Note) -> Void
 
     @State private var query = ""
-
-    private var results: [Note] {
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return [] }
-        return library.notes
-            .filter { $0.title.localizedCaseInsensitiveContains(trimmed) }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
+    @State private var results: [Note] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,7 +29,7 @@ struct SearchView: View {
             .padding(.top, Space.l)
 
             if results.isEmpty && !query.isEmpty {
-                Text("No titles match.")
+                Text("No notes match.")
                     .font(ShelfFont.reading(15))
                     .foregroundStyle(ShelfPalette.graphite)
                     .padding(.top, Space.xl)
@@ -57,5 +49,11 @@ struct SearchView: View {
         }
         .padding(.horizontal, Space.xl)
         .background(ShelfPalette.paper.ignoresSafeArea())
+        .task(id: query) {
+            // Small debounce so bodies aren't scanned on every keystroke.
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            results = library.search(query)
+        }
     }
 }

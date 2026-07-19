@@ -10,6 +10,7 @@ final class AppSettings {
     private static let themeKey = "shelf_default_theme"
     private static let fontSizeKey = "shelf_reader_font_size"
     private static let lastCollectionKey = "shelf_last_collection"
+    private static let iCloudKey = "shelf_icloud_enabled"
 
     static let fontSizeRange: ClosedRange<Double> = 17...23
 
@@ -28,6 +29,7 @@ final class AppSettings {
     var lastUsedCollectionId: UUID? {
         didSet { defaults.set(lastUsedCollectionId?.uuidString, forKey: Self.lastCollectionKey) }
     }
+    var iCloudEnabled: Bool { didSet { defaults.set(iCloudEnabled, forKey: Self.iCloudKey) } }
 
     init(defaults: UserDefaults = ShelfEnvironment.sharedDefaults) {
         self.defaults = defaults
@@ -37,6 +39,7 @@ final class AppSettings {
         let size = defaults.double(forKey: Self.fontSizeKey)
         readerFontSize = size == 0 ? 19 : size.clamped(to: Self.fontSizeRange)
         lastUsedCollectionId = defaults.string(forKey: Self.lastCollectionKey).flatMap(UUID.init)
+        iCloudEnabled = defaults.bool(forKey: Self.iCloudKey)
     }
 }
 

@@ -1,11 +1,18 @@
 import SwiftUI
 
-/// Working settings only — iCloud toggle and export-all arrive with Phase 4.
 struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
+    @Environment(LibraryModel.self) private var library
     @Environment(\.dismiss) private var dismiss
 
     @State private var showAbout = false
+    private struct ExportItem: Identifiable {
+        let url: URL
+        var id: String { url.absoluteString }
+    }
+
+    @State private var exportItem: ExportItem?
+    @State private var exportFailed = false
 
     var body: some View {
         @Bindable var settings = settings
@@ -70,6 +77,41 @@ struct SettingsView: View {
             Text("\(Int(settings.readerFontSize)) pt").metaCaps(size: 9)
                 .padding(.top, Space.xs)
 
+            Text("Your shelf").metaCaps(size: 9, color: ShelfPalette.ember)
+                .padding(.top, Space.xxl)
+            Toggle(isOn: $settings.iCloudEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("iCloud mirror")
+                        .font(ShelfFont.reading(16))
+                        .foregroundStyle(ShelfPalette.ink)
+                    if !CloudMirror.isAvailable {
+                        Text("needs the iCloud Documents capability + an iCloud account")
+                            .font(ShelfFont.mono(9))
+                            .foregroundStyle(ShelfPalette.graphite)
+                    }
+                }
+            }
+            .disabled(!CloudMirror.isAvailable)
+            .tint(ShelfPalette.ember)
+            .padding(.top, Space.m)
+
+            Button(action: exportAll) {
+                HStack {
+                    Text("Export everything")
+                        .font(ShelfFont.reading(16))
+                        .foregroundStyle(ShelfPalette.ink)
+                    Spacer()
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 14))
+                        .foregroundStyle(ShelfPalette.graphite)
+                }
+            }
+            .padding(.top, Space.l)
+            Text(exportFailed ? "export failed — try again" : "zip of index.json + every note as markdown")
+                .font(ShelfFont.mono(9))
+                .foregroundStyle(exportFailed ? ShelfPalette.ember : ShelfPalette.graphite)
+                .padding(.top, 2)
+
             Spacer()
 
             Button { showAbout = true } label: {
@@ -89,5 +131,17 @@ struct SettingsView: View {
         .background(ShelfPalette.paper.ignoresSafeArea())
         .presentationDetents([.large])
         .sheet(isPresented: $showAbout) { AboutView() }
+        .sheet(item: $exportItem) { item in
+            ActivityView(items: [item.url])
+        }
+    }
+
+    private func exportAll() {
+        exportFailed = false
+        do {
+            exportItem = ExportItem(url: try ShelfExporter.exportZip(of: library.store.paths))
+        } catch {
+            exportFailed = true
+        }
     }
 }
