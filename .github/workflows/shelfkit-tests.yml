@@ -1,0 +1,19 @@
+name: ShelfKit tests
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "ShelfKit/**"
+      - ".github/workflows/shelfkit-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: swift test (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShelfKit unit tests
+        run: swift test --package-path ShelfKit
