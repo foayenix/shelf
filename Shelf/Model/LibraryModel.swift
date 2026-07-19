@@ -19,12 +19,9 @@ final class LibraryModel {
         refresh()
     }
 
-    /// Phase 2 store lives in the app documents directory per the brief's file
-    /// layout; Phase 3 moves the root to the App Group container.
     static func makeDefault() -> LibraryModel {
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         do {
-            return LibraryModel(store: try ShelfStore(paths: ShelfPaths(root: documents)))
+            return LibraryModel(store: try ShelfEnvironment.makeStore())
         } catch {
             // Last resort so the app still launches; nothing persists past the session.
             let fallback = FileManager.default.temporaryDirectory

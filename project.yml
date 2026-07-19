@@ -22,6 +22,8 @@ targets:
       - package: ShelfKit
       - package: MarkdownUI
         product: MarkdownUI
+      - target: ShareExtension
+        embed: true
     info:
       path: Shelf/Info.plist
       properties:
@@ -43,6 +45,47 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.lazylab.shelf
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: Shelf/Resources/Shelf.entitlements
+        SWIFT_VERSION: "5.9"
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.1.0"
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ShareExtension
+      # Shared with the app target: tokens/type + storage location helper.
+      - Shelf/DesignSystem
+      - path: Shelf/App/ShelfEnvironment.swift
+      - path: Shelf/Resources/Fonts
+        buildPhase: resources
+    dependencies:
+      - package: ShelfKit
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Save to Shelf
+        UIAppFonts:
+          - Literata-Variable.ttf
+          - Literata-Italic-Variable.ttf
+          - InstrumentSerif-Regular.ttf
+          - InstrumentSerif-Italic.ttf
+          - IBMPlexMono-Regular.ttf
+          - IBMPlexMono-Medium.ttf
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lazylab.shelf.share
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
         SWIFT_VERSION: "5.9"
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "0.1.0"

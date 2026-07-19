@@ -29,7 +29,7 @@ final class AppSettings {
         didSet { defaults.set(lastUsedCollectionId?.uuidString, forKey: Self.lastCollectionKey) }
     }
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = ShelfEnvironment.sharedDefaults) {
         self.defaults = defaults
         onboarded = defaults.bool(forKey: Self.onboardedKey)
         libraryName = defaults.string(forKey: Self.libraryNameKey) ?? "My library"

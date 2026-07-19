@@ -19,9 +19,15 @@ xcodegen            # produces Shelf.xcodeproj from project.yml
 open Shelf.xcodeproj
 ```
 
-Set your development team on the Shelf target (Signing & Capabilities) the first
-time you run on device. Fonts (Literata, Instrument Serif, IBM Plex Mono — all
-OFL, licenses alongside the files) are bundled in `Shelf/Resources/Fonts`.
+Set your development team on **both** targets (Shelf and ShareExtension) under
+Signing & Capabilities the first time you run on device — the App Group
+`group.com.lazylab.shelf` is provisioned automatically. Fonts (Literata,
+Instrument Serif, IBM Plex Mono — all OFL, licenses alongside the files) are
+bundled in `Shelf/Resources/Fonts`.
+
+To test capture: select text in any app (e.g. the Claude app) → Share →
+**Save to Shelf**. Notes land in the shared container and appear in the app the
+next time it comes to the foreground.
 
 ## CI
 
