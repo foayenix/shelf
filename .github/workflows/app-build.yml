@@ -1,0 +1,31 @@
+name: App build
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "Shelf/**"
+      - "ShelfKit/Sources/**"
+      - "project.yml"
+      - ".github/workflows/app-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: xcodebuild (iOS Simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Shelf.xcodeproj \
+            -scheme Shelf \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tail -100
