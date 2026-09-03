@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import ShelfKit
 
 /// File-based iCloud mirror, per the brief: no CloudKit schema, just the Shelf
@@ -14,10 +15,18 @@ enum CloudMirror {
         FileManager.default.ubiquityIdentityToken != nil
     }
 
-    /// Fire-and-forget variant for scene-phase transitions.
+    /// Scene-phase variant. Held open with a background task assertion — without
+    /// one, iOS suspends the app on the way out and the mirror stops mid-copy.
+    @MainActor
     static func syncInBackground(paths: ShelfPaths) {
-        Task.detached(priority: .utility) {
+        let application = UIApplication.shared
+        let token = BackgroundTaskToken()
+        token.identifier = application.beginBackgroundTask(withName: "ShelfCloudMirror") {
+            token.end(with: application)
+        }
+        Task {
             await sync(paths: paths)
+            token.end(with: application)
         }
     }
 
@@ -55,8 +64,7 @@ enum CloudMirror {
             guard file.pathExtension == "md" else { continue }
             let localFile = local.notesDirectory.appendingPathComponent(file.lastPathComponent)
             if shouldCopy(from: file, over: localFile) {
-                try? fm.removeItem(at: localFile)
-                try fm.copyItem(at: file, to: localFile)
+                try replace(localFile, withCopyOf: file)
                 pulledSomething = true
             }
         }
@@ -72,15 +80,35 @@ enum CloudMirror {
         where file.pathExtension == "md" {
             let cloudFile = cloud.notesDirectory.appendingPathComponent(file.lastPathComponent)
             if shouldCopy(from: file, over: cloudFile) {
-                try? fm.removeItem(at: cloudFile)
-                try fm.copyItem(at: file, to: cloudFile)
+                try replace(cloudFile, withCopyOf: file)
             }
         }
         if fm.fileExists(atPath: local.indexFile.path) {
-            try? fm.removeItem(at: cloud.indexFile)
-            try fm.copyItem(at: local.indexFile, to: cloud.indexFile)
+            try replace(cloud.indexFile, withCopyOf: local.indexFile)
         }
         return pulledSomething
+    }
+
+    /// Copy that is never observable half-written: stage next to the destination,
+    /// then swap it in. A plain remove-then-copy leaves a window where the file is
+    /// missing or truncated — and on the index, that window is the whole library.
+    private static func replace(_ destination: URL, withCopyOf source: URL) throws {
+        let fm = FileManager.default
+        let staged = destination
+            .deletingLastPathComponent()
+            .appendingPathComponent(".\(destination.lastPathComponent).\(UUID().uuidString).tmp")
+        try? fm.removeItem(at: staged)
+        try fm.copyItem(at: source, to: staged)
+        do {
+            if fm.fileExists(atPath: destination.path) {
+                _ = try fm.replaceItemAt(destination, withItemAt: staged)
+            } else {
+                try fm.moveItem(at: staged, to: destination)
+            }
+        } catch {
+            try? fm.removeItem(at: staged)
+            throw error
+        }
     }
 
     private static func shouldCopy(from source: URL, over destination: URL) -> Bool {
@@ -91,5 +119,18 @@ enum CloudMirror {
         guard let sourceDate, let destinationDate else { return false }
         // One-second slack: cloud round-trips don't preserve exact timestamps.
         return sourceDate.timeIntervalSince(destinationDate) > 1
+    }
+}
+
+/// Holds the background task id so both the completion and the expiration handler
+/// can end it exactly once.
+@MainActor
+private final class BackgroundTaskToken {
+    var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    func end(with application: UIApplication) {
+        guard identifier != .invalid else { return }
+        application.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }

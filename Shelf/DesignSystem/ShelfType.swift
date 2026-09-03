@@ -20,13 +20,30 @@ enum ShelfFont {
     static let monoName = resolve(["IBMPlexMono", "IBM Plex Mono", "IBMPlexMono-Regular"])
     static let monoMediumName = resolve(["IBMPlexMono-Medium", "IBM Plex Mono Medium"])
 
+    /// The token sizes are the *default* sizes: every face is registered against a
+    /// text style, so the whole app tracks the reader's Dynamic Type setting. The
+    /// Reader body is the deliberate exception — it has its own Aa control, and
+    /// scaling it twice would fight the user.
+    ///
     /// Instrument Serif — screen titles, shelf names, reader titles.
-    static func display(_ size: CGFloat) -> Font { .custom(displayName, size: size) }
+    static func display(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
+        .custom(displayName, size: size, relativeTo: style)
+    }
     /// Literata — reading body and all UI text. No sans anywhere.
-    static func reading(_ size: CGFloat) -> Font { .custom(readingName, size: size) }
+    static func reading(_ size: CGFloat, relativeTo style: Font.TextStyle = .body) -> Font {
+        .custom(readingName, size: size, relativeTo: style)
+    }
     /// IBM Plex Mono — dates, counts, metadata.
-    static func mono(_ size: CGFloat) -> Font { .custom(monoName, size: size) }
-    static func monoMedium(_ size: CGFloat) -> Font { .custom(monoMediumName, size: size) }
+    static func mono(_ size: CGFloat, relativeTo style: Font.TextStyle = .caption) -> Font {
+        .custom(monoName, size: size, relativeTo: style)
+    }
+    static func monoMedium(_ size: CGFloat, relativeTo style: Font.TextStyle = .caption) -> Font {
+        .custom(monoMediumName, size: size, relativeTo: style)
+    }
+
+    /// Fixed size, ignores Dynamic Type. Only for text inside a frame that can't
+    /// grow with it — the rotated book-spine label.
+    static func monoFixed(_ size: CGFloat) -> Font { .custom(monoName, fixedSize: size) }
 }
 
 /// Uppercase Plex Mono metadata line — the "9–11pt caps, tracked" token.

@@ -53,7 +53,7 @@ struct SearchView: View {
             // Small debounce so bodies aren't scanned on every keystroke.
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled else { return }
-            results = library.search(query)
+            results = await library.search(query)
         }
     }
 }

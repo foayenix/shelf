@@ -27,7 +27,7 @@ struct BookSpineView: View {
             .overlay(alignment: .top) {
                 if width >= 17 {
                     Text(note.title.lowercased())
-                        .font(ShelfFont.mono(8))
+                        .font(ShelfFont.monoFixed(8))
                         .foregroundStyle(unread ? ShelfPalette.spineLabelUnread : ShelfPalette.spineLabel)
                         .lineLimit(1)
                         .fixedSize()

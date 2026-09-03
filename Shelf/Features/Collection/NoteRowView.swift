@@ -7,6 +7,10 @@ struct NoteRowView: View {
 
     let note: Note
 
+    /// Filled off the main actor — the preview is the note's first body line, and
+    /// reading it inline would put a file read inside every row's layout pass.
+    @State private var preview = ""
+
     private var meta: String {
         let date = note.createdAt.formatted(.dateTime.day().month(.abbreviated))
         let minutes = max(1, Int((Double(note.wordCount) / 200).rounded()))
@@ -29,8 +33,8 @@ struct NoteRowView: View {
                         .foregroundStyle(ShelfPalette.ember)
                 }
             }
-            if !library.preview(of: note.id).isEmpty {
-                Text(library.preview(of: note.id))
+            if !preview.isEmpty {
+                Text(preview)
                     .font(ShelfFont.reading(14).italic())
                     .foregroundStyle(ShelfPalette.graphite)
                     .lineLimit(1)
@@ -41,5 +45,6 @@ struct NoteRowView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, Space.l)
         .contentShape(Rectangle())
+        .task(id: note.id) { preview = await library.preview(of: note.id) }
     }
 }

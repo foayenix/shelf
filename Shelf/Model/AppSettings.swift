@@ -5,41 +5,36 @@ import Observation
 /// LazyLab `lazylab_onboarded` flag pattern from the brief.
 @Observable
 final class AppSettings {
-    private static let onboardedKey = "shelf_onboarded"
-    private static let libraryNameKey = "shelf_library_name"
-    private static let themeKey = "shelf_default_theme"
-    private static let fontSizeKey = "shelf_reader_font_size"
-    private static let lastCollectionKey = "shelf_last_collection"
-    private static let iCloudKey = "shelf_icloud_enabled"
+    private typealias Key = ShelfEnvironment.Key
 
     static let fontSizeRange: ClosedRange<Double> = 17...23
 
     private let defaults: UserDefaults
 
-    var onboarded: Bool { didSet { defaults.set(onboarded, forKey: Self.onboardedKey) } }
-    var libraryName: String { didSet { defaults.set(libraryName, forKey: Self.libraryNameKey) } }
-    var defaultTheme: ReadingTheme { didSet { defaults.set(defaultTheme.rawValue, forKey: Self.themeKey) } }
+    var onboarded: Bool { didSet { defaults.set(onboarded, forKey: Key.onboarded) } }
+    var libraryName: String { didSet { defaults.set(libraryName, forKey: Key.libraryName) } }
+    var defaultTheme: ReadingTheme { didSet { defaults.set(defaultTheme.rawValue, forKey: Key.theme) } }
     var readerFontSize: Double {
         didSet {
             readerFontSize = readerFontSize.clamped(to: Self.fontSizeRange)
-            defaults.set(readerFontSize, forKey: Self.fontSizeKey)
+            defaults.set(readerFontSize, forKey: Key.fontSize)
         }
     }
     /// Capture defaults to the last shelf the user saved to (brief §5).
     var lastUsedCollectionId: UUID? {
-        didSet { defaults.set(lastUsedCollectionId?.uuidString, forKey: Self.lastCollectionKey) }
+        didSet { defaults.set(lastUsedCollectionId?.uuidString, forKey: Key.lastCollection) }
     }
-    var iCloudEnabled: Bool { didSet { defaults.set(iCloudEnabled, forKey: Self.iCloudKey) } }
+    var iCloudEnabled: Bool { didSet { defaults.set(iCloudEnabled, forKey: Key.iCloud) } }
 
     init(defaults: UserDefaults = ShelfEnvironment.sharedDefaults) {
         self.defaults = defaults
-        onboarded = defaults.bool(forKey: Self.onboardedKey)
-        libraryName = defaults.string(forKey: Self.libraryNameKey) ?? "My library"
-        defaultTheme = ReadingTheme(rawValue: defaults.string(forKey: Self.themeKey) ?? "") ?? .paper
-        let size = defaults.double(forKey: Self.fontSizeKey)
+        onboarded = defaults.bool(forKey: Key.onboarded)
+        libraryName = defaults.string(forKey: Key.libraryName) ?? "My library"
+        defaultTheme = ReadingTheme(rawValue: defaults.string(forKey: Key.theme) ?? "") ?? .paper
+        let size = defaults.double(forKey: Key.fontSize)
         readerFontSize = size == 0 ? 19 : size.clamped(to: Self.fontSizeRange)
-        lastUsedCollectionId = defaults.string(forKey: Self.lastCollectionKey).flatMap(UUID.init)
-        iCloudEnabled = defaults.bool(forKey: Self.iCloudKey)
+        lastUsedCollectionId = defaults.string(forKey: Key.lastCollection).flatMap(UUID.init)
+        iCloudEnabled = defaults.bool(forKey: Key.iCloud)
     }
 }
 

@@ -91,7 +91,7 @@ struct ReaderView: View {
         }
         .statusBarHidden(!barsVisible)
         .navigationBarHidden(true)
-        .onAppear(perform: load)
+        .task { await load() }
         .onDisappear(perform: save)
     }
 
@@ -110,22 +110,25 @@ struct ReaderView: View {
         }
     }
 
-    private func load() {
+    private func load() async {
         guard !loaded else { return }
         loaded = true
         theme = settings.defaultTheme
         fontSize = settings.readerFontSize
-        blocks = MarkdownBlocks.split(library.body(of: noteId))
+        blocks = MarkdownBlocks.split(await library.body(of: noteId))
 
         let existing = progressStore.entry(for: noteId)
         if let existing, existing.blockIndex > 0, existing.blockIndex < blocks.count {
+            // `scrollPosition` only takes effect once the blocks it addresses have
+            // been laid out, so restore on the turn after they land.
+            await Task.yield()
             topBlockIndex = existing.blockIndex
         }
         // Opening a note marks it read (clears the unread dot / spine colour).
         progressStore.record(
             noteId: noteId,
             blockIndex: existing?.blockIndex ?? 0,
-            progress: max(existing?.progress ?? 0.01, 0.01)
+            progress: max(existing?.progress ?? 0, ReadingProgress.openedThreshold)
         )
     }
 
@@ -136,6 +139,9 @@ struct ReaderView: View {
             blockIndex: max(topBlockIndex ?? 0, 0),
             progress: max(progress, progressStore.entry(for: noteId)?.progress ?? 0)
         )
+        // Both reader controls persist: changing them mid-note shouldn't reset
+        // the next time a note is opened.
         settings.readerFontSize = fontSize
+        settings.defaultTheme = theme
     }
 }

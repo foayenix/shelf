@@ -5,6 +5,7 @@ on:
     branches: ["**"]
     paths:
       - "Shelf/**"
+      - "ShareExtension/**"
       - "ShelfKit/Sources/**"
       - "project.yml"
       - ".github/workflows/app-build.yml"

@@ -43,7 +43,7 @@ struct ReaderControlsBar: View {
             Text(progressLabel).metaCaps(size: 9, color: theme.meta)
         }
         .padding(.horizontal, 18)
-        .frame(height: 48)
+        .frame(minHeight: 48)
         .background(theme.barBackground, in: Capsule())
         .overlay(Capsule().strokeBorder(theme.rule, lineWidth: 1))
         .shadow(color: ShelfPalette.boot.opacity(0.12), radius: 12, y: 6)

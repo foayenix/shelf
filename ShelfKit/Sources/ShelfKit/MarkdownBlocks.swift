@@ -4,8 +4,8 @@ import Foundation
 /// with fenced code blocks kept intact). Each block renders as its own view so
 /// the Reader can remember and restore scroll position by block id — plain
 /// SwiftUI on iOS 17 has no offset-based restore for a single tall view.
-enum MarkdownBlocks {
-    static func split(_ markdown: String) -> [String] {
+public enum MarkdownBlocks {
+    public static func split(_ markdown: String) -> [String] {
         var blocks: [String] = []
         var current: [Substring] = []
         var inFence = false

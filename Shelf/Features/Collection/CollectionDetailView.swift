@@ -8,6 +8,10 @@ struct CollectionDetailView: View {
     let collectionId: UUID?
     let onOpenNote: (Note) -> Void
 
+    /// Titles are user-editable (brief §3) — renaming happens here, from the row.
+    @State private var renaming: Note?
+    @State private var draftTitle = ""
+
     private var name: String { library.collectionName(id: collectionId) }
     private var notes: [Note] { library.notes(in: collectionId) }
 
@@ -60,10 +64,26 @@ struct CollectionDetailView: View {
         }
         .background(ShelfPalette.paper.ignoresSafeArea())
         .navigationBarHidden(true)
+        .alert("Rename note", isPresented: renamingBinding) {
+            TextField("Title", text: $draftTitle)
+            Button("Save") {
+                if let renaming { library.renameNote(renaming.id, to: draftTitle) }
+                renaming = nil
+            }
+            Button("Cancel", role: .cancel) { renaming = nil }
+        }
+    }
+
+    private var renamingBinding: Binding<Bool> {
+        Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
     }
 
     @ViewBuilder
     private func contextMenu(for note: Note) -> some View {
+        Button("Rename") {
+            draftTitle = note.title
+            renaming = note
+        }
         Section("Move to") {
             if note.collectionId != nil {
                 Button("Inbox") { library.moveNote(note.id, to: nil) }

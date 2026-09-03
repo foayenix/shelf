@@ -122,7 +122,7 @@ struct ShareCaptureView: View {
     private func setUp() {
         guard store == nil else { return }
         do {
-            let opened = try ShelfEnvironment.makeStore()
+            let opened = try ShelfEnvironment.makeGroupStore()
             store = opened
             collections = opened.collections
         } catch {
@@ -148,7 +148,7 @@ struct ShareCaptureView: View {
         }
 
         // Default to the last shelf used, if it still exists.
-        if let last = ShelfEnvironment.sharedDefaults.string(forKey: "shelf_last_collection")
+        if let last = ShelfEnvironment.sharedDefaults.string(forKey: ShelfEnvironment.Key.lastCollection)
             .flatMap(UUID.init),
            collections.contains(where: { $0.id == last }) {
             collectionId = last
@@ -165,7 +165,7 @@ struct ShareCaptureView: View {
                 collectionId: collectionId,
                 source: .shareExtension
             )
-            ShelfEnvironment.sharedDefaults.set(collectionId?.uuidString, forKey: "shelf_last_collection")
+            ShelfEnvironment.sharedDefaults.set(collectionId?.uuidString, forKey: ShelfEnvironment.Key.lastCollection)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             onDone()
         } catch {

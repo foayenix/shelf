@@ -138,8 +138,12 @@ struct SettingsView: View {
 
     private func exportAll() {
         exportFailed = false
+        guard let paths = library.store?.paths else {
+            exportFailed = true
+            return
+        }
         do {
-            exportItem = ExportItem(url: try ShelfExporter.exportZip(of: library.store.paths))
+            exportItem = ExportItem(url: try ShelfExporter.exportZip(of: paths))
         } catch {
             exportFailed = true
         }

@@ -10,6 +10,9 @@ struct BookshelfView: View {
     @State private var showCapture = false
     @State private var showSettings = false
     @State private var showSearch = false
+    @State private var renamingShelf: NoteCollection?
+    @State private var deletingShelf: NoteCollection?
+    @State private var draftShelfName = ""
 
     private var dateLine: String {
         Date().formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
@@ -62,6 +65,32 @@ struct BookshelfView: View {
                 path.append(.reader(note.id))
             }
         }
+        .alert("Rename shelf", isPresented: boundToPresence($renamingShelf)) {
+            TextField("Name", text: $draftShelfName)
+            Button("Save") {
+                if let renamingShelf { library.renameCollection(renamingShelf.id, to: draftShelfName) }
+                renamingShelf = nil
+            }
+            Button("Cancel", role: .cancel) { renamingShelf = nil }
+        }
+        .confirmationDialog(
+            "Delete \(deletingShelf?.name ?? "shelf")?",
+            isPresented: boundToPresence($deletingShelf),
+            titleVisibility: .visible
+        ) {
+            Button("Delete shelf", role: .destructive) {
+                if let deletingShelf { library.deleteCollection(deletingShelf.id) }
+                deletingShelf = nil
+            }
+            Button("Cancel", role: .cancel) { deletingShelf = nil }
+        } message: {
+            Text("The notes on it move to your Inbox. Nothing is deleted.")
+        }
+    }
+
+    /// Drives an alert from an optional selection without a second bool.
+    private func boundToPresence<Value>(_ selection: Binding<Value?>) -> Binding<Bool> {
+        Binding(get: { selection.wrappedValue != nil }, set: { if !$0 { selection.wrappedValue = nil } })
     }
 
     private var header: some View {
@@ -116,7 +145,18 @@ struct BookshelfView: View {
                         pinned: false,
                         notes: library.notes(in: collection.id),
                         onOpenShelf: { path.append(.collection(collection.id)) },
-                        onOpenNote: { path.append(.reader($0.id)) }
+                        onOpenNote: { path.append(.reader($0.id)) },
+                        onRename: {
+                            draftShelfName = collection.name
+                            renamingShelf = collection
+                        },
+                        onDelete: { deletingShelf = collection },
+                        onMoveUp: library.canMoveCollection(collection.id, by: -1)
+                            ? { library.moveCollection(collection.id, by: -1) }
+                            : nil,
+                        onMoveDown: library.canMoveCollection(collection.id, by: 1)
+                            ? { library.moveCollection(collection.id, by: 1) }
+                            : nil
                     )
                 }
             }

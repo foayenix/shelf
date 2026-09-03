@@ -4,7 +4,9 @@ A personal reading library for saved Claude responses, by LazyLab. Save what's
 worth keeping, read it later like a book — fully offline.
 
 - Notes are plain `.md` files plus one `index.json`; readable by any tool, no
-  database. See `docs/shelf-mvp-brief.md`.
+  database. See `docs/shelf-mvp-brief.md`. The `.md` files are the source of
+  truth: an index that can't be read is set aside as `index-corrupt-<stamp>.json`
+  and rebuilt from them, so nothing is overwritten on the way to recovery.
 - `ShelfKit/` holds all storage and capture logic as a Swift package with a
   platform-independent test suite (`swift test --package-path ShelfKit`).
 - `Shelf/` is the SwiftUI app (iOS 17+). Design tokens in `docs/design-tokens.md`.
