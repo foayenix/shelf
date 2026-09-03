@@ -14,6 +14,11 @@ struct BookshelfView: View {
     @State private var deletingShelf: NoteCollection?
     @State private var draftShelfName = ""
 
+    private var deleteShelfTitle: String {
+        let name = deletingShelf?.name ?? "shelf"
+        return "Delete \(name)?"
+    }
+
     private var dateLine: String {
         Date().formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
     }
@@ -74,7 +79,7 @@ struct BookshelfView: View {
             Button("Cancel", role: .cancel) { renamingShelf = nil }
         }
         .confirmationDialog(
-            "Delete \(deletingShelf?.name ?? "shelf")?",
+            deleteShelfTitle,
             isPresented: boundToPresence($deletingShelf),
             titleVisibility: .visible
         ) {
@@ -91,6 +96,19 @@ struct BookshelfView: View {
     /// Drives an alert from an optional selection without a second bool.
     private func boundToPresence<Value>(_ selection: Binding<Value?>) -> Binding<Bool> {
         Binding(get: { selection.wrappedValue != nil }, set: { if !$0 { selection.wrappedValue = nil } })
+    }
+
+    private func actions(for collection: NoteCollection) -> ShelfActions {
+        ShelfActions(
+            canMoveUp: library.canMoveCollection(collection.id, by: -1),
+            canMoveDown: library.canMoveCollection(collection.id, by: 1),
+            rename: {
+                draftShelfName = collection.name
+                renamingShelf = collection
+            },
+            delete: { deletingShelf = collection },
+            move: { offset in library.moveCollection(collection.id, by: offset) }
+        )
     }
 
     private var header: some View {
@@ -146,17 +164,7 @@ struct BookshelfView: View {
                         notes: library.notes(in: collection.id),
                         onOpenShelf: { path.append(.collection(collection.id)) },
                         onOpenNote: { path.append(.reader($0.id)) },
-                        onRename: {
-                            draftShelfName = collection.name
-                            renamingShelf = collection
-                        },
-                        onDelete: { deletingShelf = collection },
-                        onMoveUp: library.canMoveCollection(collection.id, by: -1)
-                            ? { library.moveCollection(collection.id, by: -1) }
-                            : nil,
-                        onMoveDown: library.canMoveCollection(collection.id, by: 1)
-                            ? { library.moveCollection(collection.id, by: 1) }
-                            : nil
+                        actions: actions(for: collection)
                     )
                 }
             }

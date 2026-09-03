@@ -19,14 +19,11 @@ enum CloudMirror {
     /// one, iOS suspends the app on the way out and the mirror stops mid-copy.
     @MainActor
     static func syncInBackground(paths: ShelfPaths) {
-        let application = UIApplication.shared
         let token = BackgroundTaskToken()
-        token.identifier = application.beginBackgroundTask(withName: "ShelfCloudMirror") {
-            token.end(with: application)
-        }
-        Task {
+        token.begin()
+        Task { @MainActor in
             await sync(paths: paths)
-            token.end(with: application)
+            token.end()
         }
     }
 
@@ -122,15 +119,23 @@ enum CloudMirror {
     }
 }
 
-/// Holds the background task id so both the completion and the expiration handler
-/// can end it exactly once.
+/// Holds the background task id so both the mirror finishing and the system's
+/// expiration handler can end the assertion exactly once. `@MainActor` on the
+/// class makes it implicitly Sendable, so the Task above can capture it.
 @MainActor
 private final class BackgroundTaskToken {
-    var identifier: UIBackgroundTaskIdentifier = .invalid
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
 
-    func end(with application: UIApplication) {
+    func begin() {
+        identifier = UIApplication.shared.beginBackgroundTask(withName: "ShelfCloudMirror") {
+            // UIKit calls the expiration handler on the main thread.
+            MainActor.assumeIsolated { self.end() }
+        }
+    }
+
+    func end() {
         guard identifier != .invalid else { return }
-        application.endBackgroundTask(identifier)
+        UIApplication.shared.endBackgroundTask(identifier)
         identifier = .invalid
     }
 }
