@@ -42,9 +42,15 @@ jobs:
           APPEX="$APP/PlugIns/ShareExtension.appex"
           echo "bundle: $APP"
 
-          # App icon — a missing CFBundleIconName is ITMS-90713.
+          # App icon. Assets.car existing proves nothing on its own — any colour set
+          # produces one — so check the icon is really inside it, and that the
+          # bundle names it. A missing CFBundleIconName is ITMS-90713.
           test -f "$APP/Assets.car" || { echo "::error::compiled asset catalog missing"; exit 1; }
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP/Info.plist"
+          assetutil --info "$APP/Assets.car" > /tmp/assets.json
+          python3 -c "import json,sys; a=json.load(open('/tmp/assets.json')); n=sorted({e.get('Name') for e in a if isinstance(e,dict) and e.get('Name')}); print('assets in catalog:', n); sys.exit(0 if 'AppIcon' in n else 1)" \
+            || { echo "::error::AppIcon is not in the compiled asset catalog"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP/Info.plist" \
+            || { echo "::error::CFBundleIconName missing from Info.plist (ITMS-90713)"; exit 1; }
 
           # Required-reason API declarations — missing ones are ITMS-91053.
           test -f "$APP/PrivacyInfo.xcprivacy" || { echo "::error::app privacy manifest missing"; exit 1; }
