@@ -38,7 +38,38 @@ the Shelf folder copied to iCloud Drive, newest file wins — with no CloudKit
 schema. The toggle stays disabled when the capability or an iCloud account is
 missing.
 
+## Shipping to the App Store
+
+In the repo, and checked on every build by the *App Store requirements* CI step:
+
+- **App icon** — `Shelf/Resources/Assets.xcassets/AppIcon.appiconset`, a single
+  1024×1024 with no alpha. Regenerate with `tools/make-icon.py`.
+- **Privacy manifests** — `Shelf/Resources/PrivacyInfo.xcprivacy` and
+  `ShareExtension/PrivacyInfo.xcprivacy`, declaring the two required-reason APIs
+  Shelf touches: UserDefaults (`CA92.1`, `1C8F.1`) and file timestamps (`C617.1`).
+  Nothing is collected and nothing is tracked.
+- **Versions** — both targets take `CFBundleShortVersionString` /
+  `CFBundleVersion` from `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
+  `project.yml`. Bump them there; the app and extension must never disagree.
+- **Export compliance** — `ITSAppUsesNonExemptEncryption: false`.
+
+What still needs a human, none of which lives in the repo:
+
+1. A paid Apple Developer account, with `com.lazylab.shelf` and the App Group
+   `group.com.lazylab.shelf` registered to your team, and the team set on both
+   targets.
+2. In App Store Connect: name, subtitle, description, keywords, age rating,
+   screenshots for the required iPhone sizes, and a support URL.
+3. A **privacy policy URL** — required for every app, even one that collects
+   nothing. Answer the privacy questionnaire as *Data Not Collected*.
+4. Archive against a real device destination (`xcodebuild archive` or Xcode →
+   Product → Archive) and upload. The CI job builds for the simulator and does
+   not sign, so it proves the bundle is well-formed, not that it is signable.
+
 ## CI
 
 - `ShelfKit tests` — `swift test` on Linux in the `swift:6.1` container.
-- `App build` — XcodeGen + `xcodebuild` for iOS Simulator on a macOS runner.
+- `App build` — XcodeGen + `xcodebuild` for iOS Simulator on a macOS runner,
+  then an App Store preflight over the built bundle: icon wired up
+  (`CFBundleIconName`), both privacy manifests present, app and extension
+  versions matching `project.yml`.

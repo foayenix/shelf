@@ -28,8 +28,10 @@ targets:
       path: Shelf/Info.plist
       properties:
         CFBundleDisplayName: Shelf
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
-          UIColorName: ""
+          UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
@@ -46,6 +48,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: Shelf/Resources/Shelf.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.9"
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "0.1.0"
@@ -66,6 +69,8 @@ targets:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: Save to Shelf
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UIAppFonts:
           - Literata-Variable.ttf
           - Literata-Italic-Variable.ttf

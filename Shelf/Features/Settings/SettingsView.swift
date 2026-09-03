@@ -13,6 +13,8 @@ struct SettingsView: View {
 
     @State private var exportItem: ExportItem?
     @State private var exportFailed = false
+    /// Resolved asynchronously — see CloudMirror.checkAvailability.
+    @State private var iCloudAvailable = false
 
     var body: some View {
         @Bindable var settings = settings
@@ -84,14 +86,14 @@ struct SettingsView: View {
                     Text("iCloud mirror")
                         .font(ShelfFont.reading(16))
                         .foregroundStyle(ShelfPalette.ink)
-                    if !CloudMirror.isAvailable {
+                    if !iCloudAvailable {
                         Text("needs the iCloud Documents capability + an iCloud account")
                             .font(ShelfFont.mono(9))
                             .foregroundStyle(ShelfPalette.graphite)
                     }
                 }
             }
-            .disabled(!CloudMirror.isAvailable)
+            .disabled(!iCloudAvailable)
             .tint(ShelfPalette.ember)
             .padding(.top, Space.m)
 
@@ -129,6 +131,7 @@ struct SettingsView: View {
         }
         .padding(.horizontal, Space.xl)
         .background(ShelfPalette.paper.ignoresSafeArea())
+        .task { iCloudAvailable = await CloudMirror.checkAvailability() }
         .presentationDetents([.large])
         .sheet(isPresented: $showAbout) { AboutView() }
         .sheet(item: $exportItem) { item in

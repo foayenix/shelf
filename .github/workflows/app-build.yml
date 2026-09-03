@@ -28,5 +28,36 @@ jobs:
             -project Shelf.xcodeproj \
             -scheme Shelf \
             -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             | tail -100
+
+      # Everything App Store Connect rejects an upload for, checked against the
+      # bundle that was actually produced rather than against the source.
+      - name: Verify App Store requirements
+        run: |
+          set -euo pipefail
+          APP=$(find build/Build/Products -maxdepth 2 -name Shelf.app -print -quit)
+          test -n "$APP" || { echo "::error::Shelf.app not found"; exit 1; }
+          APPEX="$APP/PlugIns/ShareExtension.appex"
+          echo "bundle: $APP"
+
+          # App icon — a missing CFBundleIconName is ITMS-90713.
+          test -f "$APP/Assets.car" || { echo "::error::compiled asset catalog missing"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP/Info.plist"
+
+          # Required-reason API declarations — missing ones are ITMS-91053.
+          test -f "$APP/PrivacyInfo.xcprivacy" || { echo "::error::app privacy manifest missing"; exit 1; }
+          test -f "$APPEX/PrivacyInfo.xcprivacy" || { echo "::error::extension privacy manifest missing"; exit 1; }
+
+          # Extension version must match the app's, and both must track project.yml.
+          EXPECTED=$(grep -m1 'MARKETING_VERSION:' project.yml | sed 's/.*: *//' | tr -d '"')
+          APP_V=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist")
+          EXT_V=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APPEX/Info.plist")
+          echo "expected $EXPECTED / app $APP_V / extension $EXT_V"
+          test "$APP_V" = "$EXPECTED" || { echo "::error::app version is $APP_V, expected $EXPECTED"; exit 1; }
+          test "$EXT_V" = "$EXPECTED" || { echo "::error::extension version is $EXT_V, expected $EXPECTED"; exit 1; }
+
+          # Encryption declaration keeps every upload off the export-compliance queue.
+          /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$APP/Info.plist"
+          echo "App Store preflight passed"

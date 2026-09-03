@@ -9,10 +9,27 @@ import ShelfKit
 ///
 /// Requires the iCloud Documents capability on the Shelf target (add it in
 /// Signing & Capabilities). Without the entitlement or an iCloud account,
-/// `isAvailable` is false and everything is a no-op.
+/// `checkAvailability()` is false and everything is a no-op.
 enum CloudMirror {
-    static var isAvailable: Bool {
-        FileManager.default.ubiquityIdentityToken != nil
+    /// Whether mirroring can actually do anything. Both halves matter: an iCloud
+    /// account signed in, *and* a ubiquity container the app is entitled to. A
+    /// build without the iCloud Documents capability still has a token, so
+    /// checking the token alone offers a toggle that silently does nothing.
+    ///
+    /// Resolving the container can block, so it runs off the main actor and the
+    /// answer is cached for the session.
+    @MainActor private static var cachedAvailability: Bool?
+
+    @MainActor
+    static func checkAvailability() async -> Bool {
+        if let cached = cachedAvailability { return cached }
+        let available = await Task.detached(priority: .utility) {
+            let fm = FileManager.default
+            guard fm.ubiquityIdentityToken != nil else { return false }
+            return fm.url(forUbiquityContainerIdentifier: nil) != nil
+        }.value
+        cachedAvailability = available
+        return available
     }
 
     /// Scene-phase variant. Held open with a background task assertion — without
